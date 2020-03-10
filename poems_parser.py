@@ -4,6 +4,8 @@
 # Add .gitignore file to the repo, and configure it to ignore IDE specific folder ".idea"
 # https://git-scm.com/docs/gitignore
 
+# Please read how to create pull requests, it will be much more easier to review next changes
+# https://help.github.com/en/desktop/contributing-to-projects/creating-a-pull-request
 import urllib.request
 from bs4 import BeautifulSoup
 import os
@@ -55,7 +57,7 @@ def main():
 
     # you don't need read this data from file, just:
     # print('Amount of poems =', len(poem))
-    
+
     with codecs.open(args.output_file, "r", "utf-8") as file:
         print('Amount of poems =', len(file.readlines()))
 
