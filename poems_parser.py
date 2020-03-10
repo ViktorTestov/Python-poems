@@ -1,3 +1,9 @@
+# Create file requirements.txt and put there all external modules (BeautifulSoup)
+# https://pip.readthedocs.io/en/1.1/requirements.html
+
+# Add .gitignore file to the repo, and configure it to ignore IDE specific folder ".idea"
+# https://git-scm.com/docs/gitignore
+
 import urllib.request
 from bs4 import BeautifulSoup
 import os
@@ -6,6 +12,7 @@ import codecs
 
 
 # Open and read url
+# This is one line function and you use it only once in your code, it's not necessary.
 def get_resource(url):
     resource = urllib.request.urlopen(url)
     return resource.read()
@@ -23,15 +30,21 @@ def parse_page(html):
 
 def main():
     # parse the arguments
-    parser = argparse.ArgumentParser(description='My arsg parser')
+    parser = argparse.ArgumentParser(description='My arsg parser')  # You can add better description :)
     parser.add_argument('--output_file', action="store", type=str)
     args = parser.parse_args()
     # parse the poems titles
     poem = parse_page(get_resource('http://taras-shevchenko.in.ua/virshi-shevchenka.html'))
     # create folder
     path = os.path.dirname(os.path.abspath(args.output_file))
-    if not os.path.exists(path):
-        os.makedirs(path)
+    if not os.path.exists(path):   # in python3.7+ you can avoid this check, just:
+        os.makedirs(path)          # os.makedirs(path, exist_ok=True)
+
+    # There is a way to make it much more simple
+    # with open(args.output_file, "w") as f:
+    #     for p in poem:
+    #         f.write(p.string.strip() + '\n')
+
     # open file
     file_to_write = codecs.open(args.output_file, "w", "utf-8")
     # write to file
@@ -40,6 +53,9 @@ def main():
     # close the file
     file_to_write.close()
 
+    # you don't need read this data from file, just:
+    # print('Amount of poems =', len(poem))
+    
     with codecs.open(args.output_file, "r", "utf-8") as file:
         print('Amount of poems =', len(file.readlines()))
 
