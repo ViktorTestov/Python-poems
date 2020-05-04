@@ -8,12 +8,14 @@ import operator
 
 # Open resource
 def get_resource(url):
+    """ Function for getting url."""
     resource = urllib.request.urlopen(url)
     return resource.read()
 
 
 # parser
 def parse_page(html, url):
+    """Html parser for parsing whole list of Shevchenko poems.Returns the list of poems"""
     res = []
     soup = BeautifulSoup(html, 'html.parser')
     table = soup.find('table', width="99%", border="0", cellspacing="2", cellpadding="2")
@@ -22,72 +24,93 @@ def parse_page(html, url):
         poem_ur = url + row.find('a', class_='linki2')['href']
         try:
             poem_year = row.find('span').text
-        except AttributeError:
-            continue
-        poem_year = re.findall('[0-9]{4}', poem_year)
-
-        res.append([poem_name, poem_year[0], poem_ur])
+            poem_year = re.findall('[0-9]{4}', poem_year)
+            poem_year = poem_year[0]
+        except (AttributeError, IndexError):
+            poem_year = ''
+        res.append([poem_name, poem_year, poem_ur])
     return res
 
 
-# парсить посилання на вірш
 def parse_poem_by_url(url):
+    """Html parser for parsing selected poems.Returns poem name and whole poem text"""
     poem_page = get_resource(url)
     soup = BeautifulSoup(poem_page, 'html.parser')
     poem_header = soup.find('span', class_="text-head2").text
     poem_text = soup.find('p', align='left').text
-    poem = (poem_header + '\n' + poem_text + '\n')
+    poem = (f'{poem_header} {poem_text}' + '\n')
     return poem
 
 
 def print_whole_poem(poem_url):
+    """function prints whole poems text"""
     poem = parse_poem_by_url(poem_url)
     print(poem)
 
 
-def main():
+def parse_args():
+    """Function for parsing command line arguments."""
+    parser = argparse.ArgumentParser(description='Processing of command line arguments')
+    parser.add_argument('--output_file', type=str)
+    parser.add_argument('--sort_poems', choices=['name', 'years'], nargs=1, type=str)
+    parser.add_argument('--sort_order', choices=['asc', 'desc'], default='asc', nargs=1, type=str)
+    parser.add_argument('--display_novel', type=lambda x: x.split('|'))
+    args = parser.parse_args()
+    return args
+
+
+def write_poem(poem, output_file):
+    """Writes poem in file and prints count of poem and absolute path for file."""
+    # create folder
+    path = os.path.dirname(os.path.abspath(output_file))
+    if not os.path.exists(path):
+        os.makedirs(path)
+    # open file
+    with open(output_file, "w", encoding='utf-8') as f:
+        for p in poem:
+            f.write(f'{p[0].strip()} {p[1].strip()} \n')
+    print('Count of poem =', len(poem))
+    print("Absolute path = ", path)
+
+
+def display_poem(poem, display_novel):
+    """Prints whole text of selected poem"""
+    for p in poem:
+        for n in display_novel:
+            if n.strip() == p[0]:
+                print_whole_poem(p[2])
+
+
+def sort_poem(poem, sort_order, sort_poems):
+    """prints sorted poems by [name, years] ar [asc, desc]"""
+    column_index = 0
+    sort_order = True if sort_order == 'desc' else False
+    if sort_poems == 'name':
+        column_index = 0
+    elif sort_poems == 'years':
+        column_index = 1
+    sorted_poems = sorted(poem, key=operator.itemgetter(column_index), reverse=sort_order)
+    for p in sorted_poems:
+        print(f'{p[0].strip()} {p[1]}')
+
+
+def main(args):
     # parse the poems titles
     url = 'http://taras-shevchenko.in.ua/'
-    poem = parse_page(get_resource(url + 'virshi-shevchenka.html'), url)
-    # parse the arguments
-    parser = argparse.ArgumentParser(description='My arsg parser')
-    parser.add_argument('--output_file', action="store", type=str)
-    parser.add_argument('--sort_poems', '-name', '-years', action='store', nargs=1)
-    parser.add_argument('--sort_order', '-asc', '-desc', action='store', nargs=1)
-    parser.add_argument('--display_novel', action='store')
-    args = parser.parse_args()
-    reverse_sort_order = False
-    if args.sort_order and args.sort_order[0] == 'desc':
-        reverse_sort_order = True
-    if args.output_file:
-        # create folder
-        path = os.path.dirname(os.path.abspath(args.output_file))
-        if not os.path.exists(path):
-            os.makedirs(path)
-        # open file
-        with open(args.output_file, "w", encoding='utf-8') as f:
-            for p in poem:
-                f.write((p[0].strip() + ' ' + p[1].strip()) + '\n')
-        print('Count of poem =', len(poem))
-        print("Absolute path = ", path)
-    elif args.sort_poems and args.sort_poems[0] == 'name':
-        sorted_poems = sorted(poem, key=operator.itemgetter(0), reverse=reverse_sort_order)
-        for p in sorted_poems:
-            print(p[0].strip() + ' ' + p[1])
-    elif args.sort_poems and args.sort_poems[0] == 'years':
-        sorted_poems = sorted(poem, key=operator.itemgetter(1), reverse=reverse_sort_order)
-        for p in sorted_poems:
-            print(p[0].strip() + ' ' + p[1])
-    elif args.display_novel:
-        novel_names = args.display_novel.split('|')
-        for p in poem:
-            for n in novel_names:
-                if n.strip() == p[0]:
-                    print_whole_poem(p[2])
+    poem = parse_page(get_resource(url + 'virshi-tarasa-shevchenka-kobzar'), url)
+
+    if args.display_novel:
+        display_poem(poem, args.display_novel)
+
+    elif args.sort_poems:
+        sort_poem(poem, args.sort_order[0], args.sort_poems[0])
+
+    elif args.output_file:
+        write_poem(poem, args.output_file)
     else:
         for p in poem:
-            print(p[0].strip() + ' ' + p[1])
+            print(f'{p[0].strip()} {p[1]}')
 
 
 if __name__ == '__main__':
-    main()
+    main(parse_args())
